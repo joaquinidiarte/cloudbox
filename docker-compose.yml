@@ -1,0 +1,62 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: cloudbox-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: cloudbox
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cloudbox-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.api-gateway
+    container_name: cloudbox-api-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVICE_PORT=8080
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DATABASE=cloudbox
+      - JWT_SECRET=your-secret-key
+      - ENVIRONMENT=production
+      - AUTH_SERVICE_URL=http://auth-service:8081
+    depends_on:
+      - mongodb
+      - auth-service
+    networks:
+      - cloudbox-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.auth-service
+    container_name: cloudbox-auth-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVICE_PORT=8081
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DATABASE=cloudbox
+      - JWT_SECRET=your-secret-key
+      - JWT_EXPIRATION=24h
+      - ENVIRONMENT=production
+    depends_on:
+      - mongodb
+    networks:
+      - cloudbox-network
+
+volumes:
+  mongodb_data:
+  file_storage:
+
+networks:
+  cloudbox-network:
+    driver: bridge
