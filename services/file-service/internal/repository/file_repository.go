@@ -57,3 +57,14 @@ func (r *FileRepository) FindByID(ctx context.Context, id string) (*models.File,
 	}
 	return &file, nil
 }
+
+func (r *FileRepository) Delete(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return errors.New("file not found")
+	}
+	return nil
+}

@@ -64,6 +64,7 @@ func main() {
 		v1.POST("/upload", fileHandler.UploadFile)
 		v1.GET("/", fileHandler.ListFiles)
 		v1.GET("/:id/download", fileHandler.DownloadFile)
+		v1.DELETE("/:id", fileHandler.DeleteFile)
 	}
 
 	port := cfg.ServicePort

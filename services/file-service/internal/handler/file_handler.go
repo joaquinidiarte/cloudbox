@@ -92,3 +92,22 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 
 	c.FileAttachment(file.Path, file.OriginalName)
 }
+
+func (h *FileHandler) DeleteFile(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	fileID := c.Param("id")
+
+	if err := h.fileService.DeleteFile(c.Request.Context(), userID, fileID); err != nil {
+		h.logger.Errorf("Failed to delete file: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	h.logger.Infof("File deleted successfully: %s", fileID)
+	c.JSON(http.StatusOK, models.SuccessResponse(nil, "File deleted successfully"))
+}

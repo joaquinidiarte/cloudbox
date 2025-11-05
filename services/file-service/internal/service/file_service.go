@@ -123,3 +123,21 @@ func (s *FileService) DownloadFile(ctx context.Context, userID, fileID string) (
 
 	return file, nil
 }
+
+func (s *FileService) DeleteFile(ctx context.Context, userID, fileID string) error {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return err
+	}
+
+	if file.UserID != userID {
+		return errors.New("unauthorized access to file")
+	}
+
+	// Delete file from disk
+	if !file.IsFolder && file.Path != "" {
+		os.Remove(file.Path)
+	}
+
+	return s.fileRepo.Delete(ctx, fileID)
+}
