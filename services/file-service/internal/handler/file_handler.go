@@ -50,3 +50,26 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	h.logger.Infof("File uploaded successfully: %s", response.ID)
 	c.JSON(http.StatusCreated, models.SuccessResponse(response, "File uploaded successfully"))
 }
+
+func (h *FileHandler) ListFiles(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	h.logger.Infof("Upload file for userID: %s", userID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	var parentID *string
+	if pid := c.Query("parent_id"); pid != "" {
+		parentID = &pid
+	}
+
+	files, err := h.fileService.ListFiles(c.Request.Context(), userID, parentID)
+	if err != nil {
+		h.logger.Errorf("Failed to list files: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.SuccessResponse(files, "Files retrieved successfully"))
+}

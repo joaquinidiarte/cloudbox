@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/joaquinidiarte/cloudbox/shared/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type FileRepository struct {
@@ -20,4 +22,25 @@ func NewFileRepository(db *mongo.Database) *FileRepository {
 func (r *FileRepository) Create(ctx context.Context, file *models.File) error {
 	_, err := r.collection.InsertOne(ctx, file)
 	return err
+}
+
+func (r *FileRepository) FindByUserID(ctx context.Context, userID string, parentID *string) ([]*models.File, error) {
+	filter := bson.M{"user_id": userID}
+	if parentID != nil {
+		filter["parent_id"] = *parentID
+	} else {
+		filter["parent_id"] = bson.M{"$exists": false}
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, options.Find().SetSort(bson.M{"created_at": -1}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var files []*models.File
+	if err := cursor.All(ctx, &files); err != nil {
+		return nil, err
+	}
+	return files, nil
 }

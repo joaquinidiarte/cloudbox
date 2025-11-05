@@ -62,6 +62,7 @@ func main() {
 	v1.Use(middleware.AuthMiddleware(jwtManager))
 	{
 		v1.POST("/upload", fileHandler.UploadFile)
+		v1.GET("/", fileHandler.ListFiles)
 	}
 
 	port := cfg.ServicePort

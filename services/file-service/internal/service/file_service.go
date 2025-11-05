@@ -91,3 +91,17 @@ func (s *FileService) UploadFile(ctx context.Context, userID string, fileHeader 
 	response := file.ToResponse()
 	return &response, nil
 }
+
+func (c *FileService) ListFiles(ctx context.Context, userID string, parentID *string) ([]*models.FileResponse, error) {
+	files, err := c.fileRepo.FindByUserID(ctx, userID, parentID)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*models.FileResponse, len(files))
+	for i, file := range files {
+		response := file.ToResponse()
+		responses[i] = &response
+	}
+	return responses, nil
+}
