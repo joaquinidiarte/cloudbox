@@ -65,6 +65,10 @@ func main() {
 		v1.GET("/", fileHandler.ListFiles)
 		v1.GET("/:id/download", fileHandler.DownloadFile)
 		v1.DELETE("/:id", fileHandler.DeleteFile)
+
+		// Folder operations
+		v1.POST("/folders", fileHandler.CreateFolder)
+		v1.GET("/folders/:id", fileHandler.GetFolderContents)
 	}
 
 	port := cfg.ServicePort

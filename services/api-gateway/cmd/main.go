@@ -45,6 +45,10 @@ func main() {
 			files.GET("/", proxyHandler.ProxyToFile)
 			files.GET("/:id/download", proxyHandler.ProxyToFile)
 			files.DELETE("/:id", proxyHandler.ProxyToFile)
+
+			// Folder routes
+			files.POST("/folders", proxyHandler.ProxyToFile)
+			files.GET("/folders/:id", proxyHandler.ProxyToFile)
 		}
 	}
 

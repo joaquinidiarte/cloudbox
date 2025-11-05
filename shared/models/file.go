@@ -73,3 +73,24 @@ func (f *File) ToResponse() FileResponse {
 		UpdatedAt: f.UpdatedAt,
 	}
 }
+
+type FolderCreateRequest struct {
+	Name     string  `json:"name" binding:"required"`
+	ParentID *string `json:"parent_id,omitempty"`
+}
+
+func NewFolder(userID, name string, parentID *string) *File {
+	now := time.Now()
+	return &File{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Name:      name,
+		ParentID:  parentID,
+		IsFolder:  true,
+		IsShared:  false,
+		IsPublic:  false,
+		Size:      0,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}

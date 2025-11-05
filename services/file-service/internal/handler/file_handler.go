@@ -111,3 +111,46 @@ func (h *FileHandler) DeleteFile(c *gin.Context) {
 	h.logger.Infof("File deleted successfully: %s", fileID)
 	c.JSON(http.StatusOK, models.SuccessResponse(nil, "File deleted successfully"))
 }
+
+func (h *FileHandler) CreateFolder(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	var req models.FolderCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse("Invalid request: "+err.Error()))
+		return
+	}
+
+	folder, err := h.fileService.CreateFolder(c.Request.Context(), userID, &req)
+	if err != nil {
+		h.logger.Errorf("Failed to create folder: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	h.logger.Infof("Folder created successfully: %s", folder.ID)
+	c.JSON(http.StatusCreated, models.SuccessResponse(folder, "Folder created successfully"))
+}
+
+func (h *FileHandler) GetFolderContents(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	folderID := c.Param("id")
+
+	files, err := h.fileService.ListFiles(c.Request.Context(), userID, &folderID)
+	if err != nil {
+		h.logger.Errorf("Failed to get folder contents: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.SuccessResponse(files, "Folder contents retrieved successfully"))
+}

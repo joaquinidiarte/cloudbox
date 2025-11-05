@@ -141,3 +141,15 @@ func (s *FileService) DeleteFile(ctx context.Context, userID, fileID string) err
 
 	return s.fileRepo.Delete(ctx, fileID)
 }
+
+/* Folder operations */
+func (s *FileService) CreateFolder(ctx context.Context, userID string, req *models.FolderCreateRequest) (*models.FileResponse, error) {
+	folder := models.NewFolder(userID, req.Name, req.ParentID)
+
+	if err := s.fileRepo.Create(ctx, folder); err != nil {
+		return nil, err
+	}
+
+	response := folder.ToResponse()
+	return &response, nil
+}
