@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cloudbox/shared/models"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
 )
 
 type JWTManager struct {
@@ -29,7 +29,7 @@ type Claims struct {
 
 func (m *JWTManager) Generate(user *models.User) (string, int64, error) {
 	expiresAt := time.Now().Add(m.tokenDuration)
-	
+
 	claims := Claims{
 		UserID:   user.ID,
 		Email:    user.Email,

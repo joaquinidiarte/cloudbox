@@ -1,4 +1,4 @@
-module github.com/cloudbox
+module github.com/joaquinidiarte/cloudbox
 
 go 1.21
 

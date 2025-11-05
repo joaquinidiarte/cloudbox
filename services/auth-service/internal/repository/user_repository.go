@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

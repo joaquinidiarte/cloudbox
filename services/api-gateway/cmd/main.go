@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/cloudbox/services/api-gateway/internal/handler"
-	"github.com/cloudbox/shared/config"
-	"github.com/cloudbox/shared/middleware"
-	"github.com/cloudbox/shared/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/joaquinidiarte/cloudbox/services/api-gateway/internal/handler"
+	"github.com/joaquinidiarte/cloudbox/shared/config"
+	"github.com/joaquinidiarte/cloudbox/shared/middleware"
+	"github.com/joaquinidiarte/cloudbox/shared/utils"
 )
 
 func main() {

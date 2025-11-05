@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cloudbox/shared/config"
-	"github.com/cloudbox/shared/models"
-	"github.com/cloudbox/shared/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/joaquinidiarte/cloudbox/shared/config"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/shared/utils"
 )
 
 type ProxyHandler struct {

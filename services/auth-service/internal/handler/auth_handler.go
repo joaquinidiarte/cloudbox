@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/cloudbox/services/auth-service/internal/service"
-	"github.com/cloudbox/shared/models"
-	"github.com/cloudbox/shared/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/joaquinidiarte/cloudbox/services/auth-service/internal/service"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/shared/utils"
 )
 
 type AuthHandler struct {

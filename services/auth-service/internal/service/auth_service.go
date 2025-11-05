@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/cloudbox/services/auth-service/internal/repository"
-	"github.com/cloudbox/shared/models"
-	"github.com/cloudbox/shared/utils"
+	"github.com/joaquinidiarte/cloudbox/services/auth-service/internal/repository"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/shared/utils"
 )
 
 type AuthService struct {
