@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -104,4 +105,21 @@ func (c *FileService) ListFiles(ctx context.Context, userID string, parentID *st
 		responses[i] = &response
 	}
 	return responses, nil
+}
+
+func (s *FileService) DownloadFile(ctx context.Context, userID, fileID string) (*models.File, error) {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if file.UserID != userID && !file.IsPublic {
+		return nil, errors.New("unauthorized access to file")
+	}
+
+	if file.IsFolder {
+		return nil, errors.New("cannot download a folder")
+	}
+
+	return file, nil
 }

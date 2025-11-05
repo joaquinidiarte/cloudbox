@@ -73,3 +73,22 @@ func (h *FileHandler) ListFiles(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.SuccessResponse(files, "Files retrieved successfully"))
 }
+
+func (h *FileHandler) DownloadFile(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	fileID := c.Param("id")
+
+	file, err := h.fileService.DownloadFile(c.Request.Context(), userID, fileID)
+	if err != nil {
+		h.logger.Errorf("Failed to download file: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.FileAttachment(file.Path, file.OriginalName)
+}

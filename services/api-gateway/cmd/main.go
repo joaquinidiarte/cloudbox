@@ -43,6 +43,7 @@ func main() {
 		{
 			files.POST("/upload", proxyHandler.ProxyToFile)
 			files.GET("/", proxyHandler.ProxyToFile)
+			files.GET("/:id/download", proxyHandler.ProxyToFile)
 		}
 	}
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/joaquinidiarte/cloudbox/shared/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -43,4 +44,16 @@ func (r *FileRepository) FindByUserID(ctx context.Context, userID string, parent
 		return nil, err
 	}
 	return files, nil
+}
+
+func (r *FileRepository) FindByID(ctx context.Context, id string) (*models.File, error) {
+	var file models.File
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&file)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, errors.New("file not found")
+		}
+		return nil, err
+	}
+	return &file, nil
 }
