@@ -37,6 +37,13 @@ func main() {
 			auth.POST("/login", proxyHandler.ProxyToAuth)
 			auth.POST("/verify", proxyHandler.ProxyToAuth)
 		}
+
+		// File routes
+		files := api.Group("/files")
+		{
+			files.POST("/upload", proxyHandler.ProxyToFile)
+			files.GET("/", proxyHandler.ProxyToFile)
+		}
 	}
 
 	// Start server
