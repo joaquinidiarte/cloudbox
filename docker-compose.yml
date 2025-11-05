@@ -65,7 +65,7 @@ services:
       - SERVICE_PORT=8083
       - MONGO_URI=mongodb://mongodb:27017
       - MONGO_DATABASE=cloudbox
-      - JWT_SECRET=your-secret-key-change-in-production
+      - JWT_SECRET=your-secret-key
       - JWT_EXPIRATION=24h
       - STORAGE_PATH=/app/storage
       - MAX_FILE_SIZE=104857600
