@@ -1,14 +1,4 @@
-import { useState, useEffect } from 'react'
-import { Download, RotateCcw, Trash2, Clock, AlertCircle, Loader2 } from 'lucide-react'
-import { filesAPI } from '../api/files'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +9,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthStore } from '@/store/authStore'
+import { AlertCircle, Clock, Download, Loader2, RotateCcw, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { filesAPI } from '../api/files'
 
 export default function FileVersionsModal({ open, file, onClose, onVersionRestored }) {
   const [versions, setVersions] = useState([])
@@ -34,6 +35,8 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
   const [actionLoading, setActionLoading] = useState(null)
   const [alertDialog, setAlertDialog] = useState({ open: false, type: '', version: null })
   const { toast } = useToast()
+  const refreshUser = useAuthStore((state) => state.refreshUser)
+
 
   useEffect(() => {
     if (open && file?.id) {
@@ -69,7 +72,7 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      
+
       toast({
         title: 'Descarga iniciada',
         description: `Versión ${version} descargada correctamente`,
@@ -90,7 +93,7 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
     const version = alertDialog.version
     setAlertDialog({ open: false, type: '', version: null })
     setActionLoading(`restore-${version}`)
-    
+
     try {
       await filesAPI.restoreVersion(file.id, version)
       toast({
@@ -115,7 +118,7 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
     const version = alertDialog.version
     setAlertDialog({ open: false, type: '', version: null })
     setActionLoading(`delete-${version}`)
-    
+
     try {
       await filesAPI.deleteVersion(file.id, version)
       toast({
@@ -123,6 +126,7 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
         description: `La versión ${version} ha sido eliminada`,
       })
       loadVersions()
+      await refreshUser()
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -199,7 +203,7 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
                               <Badge>Actual</Badge>
                             )}
                           </div>
-                          
+
                           <div className="space-y-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5" />
@@ -235,10 +239,10 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
                                 variant="ghost"
                                 size="icon"
                                 onClick={() =>
-                                  setAlertDialog({ 
-                                    open: true, 
-                                    type: 'restore', 
-                                    version: version.version 
+                                  setAlertDialog({
+                                    open: true,
+                                    type: 'restore',
+                                    version: version.version
                                   })
                                 }
                                 disabled={actionLoading === `restore-${version.version}`}
@@ -256,10 +260,10 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
                                 variant="ghost"
                                 size="icon"
                                 onClick={() =>
-                                  setAlertDialog({ 
-                                    open: true, 
-                                    type: 'delete', 
-                                    version: version.version 
+                                  setAlertDialog({
+                                    open: true,
+                                    type: 'delete',
+                                    version: version.version
                                   })
                                 }
                                 disabled={actionLoading === `delete-${version.version}`}
@@ -299,19 +303,19 @@ export default function FileVersionsModal({ open, file, onClose, onVersionRestor
       </Dialog>
 
       {/* AlertDialog para confirmaciones */}
-      <AlertDialog 
-        open={alertDialog.open} 
+      <AlertDialog
+        open={alertDialog.open}
         onOpenChange={(open) => !open && setAlertDialog({ open: false, type: '', version: null })}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {alertDialog.type === 'restore' 
-                ? '¿Restaurar esta versión?' 
+              {alertDialog.type === 'restore'
+                ? '¿Restaurar esta versión?'
                 : '¿Eliminar esta versión?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {alertDialog.type === 'restore' 
+              {alertDialog.type === 'restore'
                 ? `La versión ${alertDialog.version} se convertirá en la versión actual del archivo.`
                 : `La versión ${alertDialog.version} será eliminada permanentemente. Esta acción no se puede deshacer.`}
             </AlertDialogDescription>

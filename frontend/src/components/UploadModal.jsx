@@ -67,10 +67,8 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
         description: `${selectedFile.name} se subió correctamente`,
       })
 
-      // Refresh user data to update storage
       await refreshUser()
 
-      // Resetear y cerrar
       setTimeout(() => {
         setSelectedFile(null)
         setUploadProgress(0)
