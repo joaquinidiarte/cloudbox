@@ -103,14 +103,15 @@ func (h *FileHandler) DeleteFile(c *gin.Context) {
 
 	fileID := c.Param("id")
 
-	if err := h.fileService.DeleteFile(c.Request.Context(), userID, fileID); err != nil {
+	deletedSize, err := h.fileService.DeleteFile(c.Request.Context(), userID, fileID)
+	if err != nil {
 		h.logger.Errorf("Failed to delete file: %v", err)
 		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
 		return
 	}
 
-	h.logger.Infof("File deleted successfully: %s", fileID)
-	c.JSON(http.StatusOK, models.SuccessResponse(nil, "File deleted successfully"))
+	h.logger.Infof("File deleted successfully: %s (size: %d)", fileID, deletedSize)
+	c.JSON(http.StatusOK, models.SuccessResponse(gin.H{"deleted_size": deletedSize}, "File deleted successfully"))
 }
 
 func (h *FileHandler) CreateFolder(c *gin.Context) {
@@ -245,12 +246,13 @@ func (h *FileHandler) DeleteFileVersion(c *gin.Context) {
 		return
 	}
 
-	if err := h.fileService.DeleteFileVersion(c.Request.Context(), userID, fileID, version); err != nil {
+	deletedSize, err := h.fileService.DeleteFileVersion(c.Request.Context(), userID, fileID, version)
+	if err != nil {
 		h.logger.Errorf("Failed to delete file version: %v", err)
 		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
 		return
 	}
 
-	h.logger.Infof("File version deleted successfully: %s v%d", fileID, version)
-	c.JSON(http.StatusOK, models.SuccessResponse(nil, "File version deleted successfully"))
+	h.logger.Infof("File version deleted successfully: %s v%d (size: %d)", fileID, version, deletedSize)
+	c.JSON(http.StatusOK, models.SuccessResponse(gin.H{"deleted_size": deletedSize}, "File version deleted successfully"))
 }

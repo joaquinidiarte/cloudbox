@@ -1,19 +1,3 @@
-import { useState, useEffect } from 'react'
-import { Upload, FolderPlus, RefreshCw, Loader2 } from 'lucide-react'
-import { filesAPI } from '../api/files'
-import FileList from '../components/FileList'
-import UploadModal from '../components/UploadModal'
-import CreateFolderModal from '../components/CreateFolderModal'
-import FileVersionsModal from '../components/FileVersionsModal'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +8,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthStore } from '@/store/authStore'
+import { FolderPlus, Loader2, RefreshCw, Upload } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { filesAPI } from '../api/files'
+import CreateFolderModal from '../components/CreateFolderModal'
+import FileList from '../components/FileList'
+import FileVersionsModal from '../components/FileVersionsModal'
+import UploadModal from '../components/UploadModal'
 
 export default function Dashboard() {
   const [files, setFiles] = useState([])
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: 'Mis Archivos' }])
   const [refreshing, setRefreshing] = useState(false)
   const { toast } = useToast()
+  const refreshUser = useAuthStore((state) => state.refreshUser)
 
   const loadFiles = async (folderId = null) => {
     setLoading(true)
@@ -98,6 +100,8 @@ export default function Dashboard() {
         description: 'El archivo se eliminó correctamente',
       })
       loadFiles(currentFolder)
+      await refreshUser()
+
     } catch (error) {
       console.error('Error deleting file:', error)
       toast({
@@ -119,7 +123,7 @@ export default function Dashboard() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-      
+
       toast({
         title: 'Descarga iniciada',
         description: `${file.original_name} se está descargando`,
@@ -247,8 +251,8 @@ export default function Dashboard() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={deleteDialog.open} 
+      <AlertDialog
+        open={deleteDialog.open}
         onOpenChange={(open) => !open && setDeleteDialog({ open: false, fileId: null, fileName: '' })}
       >
         <AlertDialogContent>

@@ -1,6 +1,5 @@
-import { useState, useRef } from 'react'
-import { Upload, AlertCircle, File, X, Loader2 } from 'lucide-react'
-import { filesAPI } from '../api/files'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,10 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
+import { AlertCircle, File, Loader2, Upload, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { filesAPI } from '../api/files'
+import { useAuthStore } from '../store/authStore'
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024 // 500MB
 
 export default function UploadModal({ open, onClose, onSuccess, parentId }) {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -21,13 +24,14 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
   const { toast } = useToast()
+  const refreshUser = useAuthStore((state) => state.refreshUser)
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validar tamaño (100MB)
-      if (file.size > 100 * 1024 * 1024) {
-        setError('El archivo es demasiado grande (máximo 100MB)')
+      // Validar tamaño (500MB)
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`El archivo es demasiado grande (máximo ${formatBytes(MAX_FILE_SIZE)})`)
         setSelectedFile(null)
         return
       }
@@ -56,7 +60,7 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
       }, 200)
 
       await filesAPI.upload(selectedFile, parentId)
-      
+
       clearInterval(progressInterval)
       setUploadProgress(100)
 
@@ -65,7 +69,8 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
         description: `${selectedFile.name} se subió correctamente`,
       })
 
-      // Resetear y cerrar
+      await refreshUser()
+
       setTimeout(() => {
         setSelectedFile(null)
         setUploadProgress(0)
@@ -103,8 +108,8 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
 
     const file = e.dataTransfer.files?.[0]
     if (file) {
-      if (file.size > 100 * 1024 * 1024) {
-        setError('El archivo es demasiado grande (máximo 100MB)')
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`El archivo es demasiado grande (máximo ${formatBytes(MAX_FILE_SIZE)})`)
         return
       }
       setSelectedFile(file)
@@ -129,7 +134,7 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
             Subir Archivo
           </DialogTitle>
           <DialogDescription>
-            Selecciona un archivo para subir a tu almacenamiento (máximo 100MB)
+            Selecciona un archivo para subir a tu almacenamiento (máximo {formatBytes(MAX_FILE_SIZE)}).
           </DialogDescription>
         </DialogHeader>
 
@@ -149,8 +154,8 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
             className={`
               border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
               transition-colors
-              ${selectedFile 
-                ? 'border-primary bg-primary/5' 
+              ${selectedFile
+                ? 'border-primary bg-primary/5'
                 : 'border-muted-foreground/25 hover:border-primary hover:bg-accent'
               }
               ${uploading ? 'pointer-events-none opacity-60' : ''}
@@ -197,7 +202,7 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
                     Haz clic o arrastra un archivo aquí
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Máximo 100MB
+                    Máximo {formatBytes(MAX_FILE_SIZE)}
                   </p>
                 </div>
               </div>

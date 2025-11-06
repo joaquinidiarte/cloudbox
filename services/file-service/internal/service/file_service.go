@@ -15,12 +15,12 @@ import (
 )
 
 type FileService struct {
-	fileRepo    *repository.FileRepository
+	fileRepo    repository.FileRepository
 	storagePath string
 	maxFileSize int64
 }
 
-func NewFileService(fileRepo *repository.FileRepository, storagePath string, maxFileSize int64) *FileService {
+func NewFileService(fileRepo repository.FileRepository, storagePath string, maxFileSize int64) *FileService {
 	return &FileService{
 		fileRepo:    fileRepo,
 		storagePath: storagePath,
@@ -47,54 +47,60 @@ func (s *FileService) UploadFile(ctx context.Context, userID string, fileHeader 
 		return nil, err
 	}
 
+	var response *models.FileResponse
 	if existingFile != nil {
 		// File with same name exists - create new version
-		return s.addNewVersion(ctx, existingFile, fileHeader, src)
+		response, err = s.addNewVersion(ctx, existingFile, fileHeader, src)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Reset file pointer
+		src.Seek(0, 0)
+
+		// Create user directory
+		userDir := filepath.Join(s.storagePath, userID)
+		if err := os.MkdirAll(userDir, 0755); err != nil {
+			return nil, err
+		}
+
+		// Generate unique filename
+		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename)
+		filePath := filepath.Join(userDir, filename)
+
+		// Save file to disk
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return nil, err
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			os.Remove(filePath)
+			return nil, err
+		}
+
+		// Create file record
+		file := models.NewFile(
+			userID,
+			filename,
+			fileHeader.Filename,
+			filePath,
+			fileHeader.Size,
+			fileHeader.Header.Get("Content-Type"),
+			parentID,
+		)
+
+		if err := s.fileRepo.Create(ctx, file); err != nil {
+			os.Remove(filePath)
+			return nil, err
+		}
+
+		resp := file.ToResponse()
+		response = &resp
 	}
 
-	// Reset file pointer
-	src.Seek(0, 0)
-
-	// Create user directory
-	userDir := filepath.Join(s.storagePath, userID)
-	if err := os.MkdirAll(userDir, 0755); err != nil {
-		return nil, err
-	}
-
-	// Generate unique filename
-	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename)
-	filePath := filepath.Join(userDir, filename)
-
-	// Save file to disk
-	dst, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, src); err != nil {
-		os.Remove(filePath)
-		return nil, err
-	}
-
-	// Create file record
-	file := models.NewFile(
-		userID,
-		filename,
-		fileHeader.Filename,
-		filePath,
-		fileHeader.Size,
-		fileHeader.Header.Get("Content-Type"),
-		parentID,
-	)
-
-	if err := s.fileRepo.Create(ctx, file); err != nil {
-		os.Remove(filePath)
-		return nil, err
-	}
-
-	response := file.ToResponse()
-	return &response, nil
+	return response, nil
 }
 
 func (c *FileService) ListFiles(ctx context.Context, userID string, parentID *string) ([]*models.FileResponse, error) {
@@ -128,22 +134,44 @@ func (s *FileService) DownloadFile(ctx context.Context, userID, fileID string) (
 	return file, nil
 }
 
-func (s *FileService) DeleteFile(ctx context.Context, userID, fileID string) error {
+func (s *FileService) DeleteFile(ctx context.Context, userID, fileID string) (int64, error) {
 	file, err := s.fileRepo.FindByID(ctx, fileID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if file.UserID != userID {
-		return errors.New("unauthorized access to file")
+		return 0, errors.New("unauthorized access to file")
+	}
+
+	// Calculate total size (current version + all versions)
+	var totalSize int64
+	if !file.IsFolder {
+		totalSize = file.Size
+		for _, v := range file.Versions {
+			if v.Version != file.CurrentVersion {
+				totalSize += v.Size
+			}
+		}
 	}
 
 	// Delete file from disk
 	if !file.IsFolder && file.Path != "" {
 		os.Remove(file.Path)
+		// Delete all version files
+		for _, v := range file.Versions {
+			if v.Path != file.Path {
+				os.Remove(v.Path)
+			}
+		}
 	}
 
-	return s.fileRepo.Delete(ctx, fileID)
+	err = s.fileRepo.Delete(ctx, fileID)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalSize, nil
 }
 
 /* Folder operations */
@@ -300,48 +328,50 @@ func (s *FileService) RestoreFileVersion(ctx context.Context, userID, fileID str
 	return &response, nil
 }
 
-func (s *FileService) DeleteFileVersion(ctx context.Context, userID, fileID string, version int) error {
+func (s *FileService) DeleteFileVersion(ctx context.Context, userID, fileID string, version int) (int64, error) {
 	file, err := s.fileRepo.FindByID(ctx, fileID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if file.UserID != userID {
-		return errors.New("unauthorized access to file")
+		return 0, errors.New("unauthorized access to file")
 	}
 
 	if file.IsFolder {
-		return errors.New("folders do not have versions")
+		return 0, errors.New("folders do not have versions")
 	}
 
 	if version == file.CurrentVersion {
-		return errors.New("cannot delete current version")
+		return 0, errors.New("cannot delete current version")
 	}
 
 	if len(file.Versions) <= 1 {
-		return errors.New("cannot delete the only version")
+		return 0, errors.New("cannot delete the only version")
 	}
 
 	// Find the version to delete
 	var versionPath string
+	var versionSize int64
 	for _, v := range file.Versions {
 		if v.Version == version {
 			versionPath = v.Path
+			versionSize = v.Size
 			break
 		}
 	}
 
 	if versionPath == "" {
-		return errors.New("version not found")
+		return 0, errors.New("version not found")
 	}
 
 	// Delete from database
 	if err := s.fileRepo.DeleteVersion(ctx, fileID, version); err != nil {
-		return err
+		return 0, err
 	}
 
 	// Delete file from disk
 	os.Remove(versionPath)
 
-	return nil
+	return versionSize, nil
 }

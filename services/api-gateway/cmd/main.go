@@ -38,19 +38,22 @@ func main() {
 			auth.POST("/verify", proxyHandler.ProxyToAuth)
 		}
 
-		// User routes (proxy to user-service)
+		// User routes
 		users := api.Group("/users")
 		{
 			users.GET("/me", proxyHandler.ProxyToUser)
 			users.PUT("/me", proxyHandler.ProxyToUser)
+			users.POST("/storage", proxyHandler.ProxyToUser)
 			users.GET("/:id", proxyHandler.ProxyToUser)
+		}
+
 		// File routes
 		files := api.Group("/files")
 		{
-			files.POST("/upload", proxyHandler.ProxyToFile)
+			files.POST("/upload", proxyHandler.UploadFile)
 			files.GET("/", proxyHandler.ProxyToFile)
 			files.GET("/:id/download", proxyHandler.ProxyToFile)
-			files.DELETE("/:id", proxyHandler.ProxyToFile)
+			files.DELETE("/:id", proxyHandler.DeleteFile)
 
 			// Folder routes
 			files.POST("/folders", proxyHandler.ProxyToFile)
@@ -60,7 +63,7 @@ func main() {
 			files.GET("/:id/versions", proxyHandler.ProxyToFile)
 			files.GET("/:id/versions/:version/download", proxyHandler.ProxyToFile)
 			files.POST("/:id/versions/:version/restore", proxyHandler.ProxyToFile)
-			files.DELETE("/:id/versions/:version", proxyHandler.ProxyToFile)
+			files.DELETE("/:id/versions/:version", proxyHandler.DeleteFileVersion)
 		}
 	}
 
@@ -73,5 +76,4 @@ func main() {
 	if err := router.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
-}
 }
