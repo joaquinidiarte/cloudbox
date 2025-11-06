@@ -25,9 +25,9 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validar tamaño (100MB)
-      if (file.size > 100 * 1024 * 1024) {
-        setError('El archivo es demasiado grande (máximo 100MB)')
+      // Validar tamaño (500MB)
+      if (file.size > 500 * 1024 * 1024) {
+        setError('El archivo es demasiado grande (máximo 500MB)')
         setSelectedFile(null)
         return
       }
@@ -103,8 +103,8 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
 
     const file = e.dataTransfer.files?.[0]
     if (file) {
-      if (file.size > 100 * 1024 * 1024) {
-        setError('El archivo es demasiado grande (máximo 100MB)')
+      if (file.size > 500 * 1024 * 1024) {
+        setError('El archivo es demasiado grande (máximo 500MB)')
         return
       }
       setSelectedFile(file)
@@ -129,7 +129,7 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
             Subir Archivo
           </DialogTitle>
           <DialogDescription>
-            Selecciona un archivo para subir a tu almacenamiento (máximo 100MB)
+            Selecciona un archivo para subir a tu almacenamiento (máximo 500MB)
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +197,7 @@ export default function UploadModal({ open, onClose, onSuccess, parentId }) {
                     Haz clic o arrastra un archivo aquí
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Máximo 100MB
+                    Máximo 500MB
                   </p>
                 </div>
               </div>
