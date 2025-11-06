@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/cloudbox/services/user-service/internal/service"
-	"github.com/cloudbox/shared/middleware"
-	"github.com/cloudbox/shared/models"
-	"github.com/cloudbox/shared/utils"
+	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/service"
+	"github.com/joaquinidiarte/cloudbox/shared/middleware"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 

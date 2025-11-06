@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/cloudbox/services/user-service/internal/repository"
-	"github.com/cloudbox/shared/models"
+	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/repository"
+	"github.com/joaquinidiarte/cloudbox/shared/models"
 )
 
 type UserService struct {
