@@ -227,3 +227,33 @@ func (s *FileService) GetFileVersions(ctx context.Context, userID, fileID string
 
 	return file.GetVersionResponses(), nil
 }
+
+func (s *FileService) DownloadFileVersion(ctx context.Context, userID, fileID string, version int) (*models.File, string, error) {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if file.UserID != userID && !file.IsPublic {
+		return nil, "", errors.New("unauthorized access to file")
+	}
+
+	if file.IsFolder {
+		return nil, "", errors.New("cannot download a folder")
+	}
+
+	// Find the requested version
+	var versionPath string
+	for _, v := range file.Versions {
+		if v.Version == version {
+			versionPath = v.Path
+			break
+		}
+	}
+
+	if versionPath == "" {
+		return nil, "", errors.New("version not found")
+	}
+
+	return file, versionPath, nil
+}

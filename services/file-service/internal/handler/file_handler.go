@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joaquinidiarte/cloudbox/services/file-service/internal/service"
@@ -173,4 +174,30 @@ func (h *FileHandler) GetFileVersions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.SuccessResponse(versions, "File versions retrieved successfully"))
+}
+
+func (h *FileHandler) DownloadFileVersion(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	fileID := c.Param("id")
+	versionStr := c.Param("version")
+
+	version, err := strconv.Atoi(versionStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse("Invalid version number"))
+		return
+	}
+
+	file, versionPath, err := h.fileService.DownloadFileVersion(c.Request.Context(), userID, fileID, version)
+	if err != nil {
+		h.logger.Errorf("Failed to download file version: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.FileAttachment(versionPath, file.OriginalName)
 }

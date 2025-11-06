@@ -72,6 +72,7 @@ func main() {
 
 		// Version operations
 		v1.GET("/:id/versions", fileHandler.GetFileVersions)
+		v1.GET("/:id/versions/:version/download", fileHandler.DownloadFileVersion)
 	}
 
 	port := cfg.ServicePort
