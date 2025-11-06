@@ -15,12 +15,12 @@ import (
 )
 
 type FileService struct {
-	fileRepo    *repository.FileRepository
+	fileRepo    repository.FileRepository
 	storagePath string
 	maxFileSize int64
 }
 
-func NewFileService(fileRepo *repository.FileRepository, storagePath string, maxFileSize int64) *FileService {
+func NewFileService(fileRepo repository.FileRepository, storagePath string, maxFileSize int64) *FileService {
 	return &FileService{
 		fileRepo:    fileRepo,
 		storagePath: storagePath,

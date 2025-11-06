@@ -10,22 +10,36 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type FileRepository struct {
+// FileRepository defines the interface for file data access
+type FileRepository interface {
+	Create(ctx context.Context, file *models.File) error
+	FindByUserID(ctx context.Context, userID string, parentID *string) ([]*models.File, error)
+	FindByID(ctx context.Context, id string) (*models.File, error)
+	FindByOriginalName(ctx context.Context, userID, originalName string, parentID *string) (*models.File, error)
+	Delete(ctx context.Context, id string) error
+	AddVersion(ctx context.Context, id string, version models.FileVersion, currentVersion int, path, mimeType string, size int64) error
+	UpdateCurrentVersion(ctx context.Context, id string, version int, path, mimeType string, size int64) error
+	DeleteVersion(ctx context.Context, id string, version int) error
+}
+
+// MongoDBFileRepository is the MongoDB implementation of FileRepository
+type MongoDBFileRepository struct {
 	collection *mongo.Collection
 }
 
-func NewFileRepository(db *mongo.Database) *FileRepository {
-	return &FileRepository{
+// NewFileRepository creates a new MongoDB file repository
+func NewFileRepository(db *mongo.Database) FileRepository {
+	return &MongoDBFileRepository{
 		collection: db.Collection("files"),
 	}
 }
 
-func (r *FileRepository) Create(ctx context.Context, file *models.File) error {
+func (r *MongoDBFileRepository) Create(ctx context.Context, file *models.File) error {
 	_, err := r.collection.InsertOne(ctx, file)
 	return err
 }
 
-func (r *FileRepository) FindByUserID(ctx context.Context, userID string, parentID *string) ([]*models.File, error) {
+func (r *MongoDBFileRepository) FindByUserID(ctx context.Context, userID string, parentID *string) ([]*models.File, error) {
 	filter := bson.M{"user_id": userID}
 	if parentID != nil {
 		filter["parent_id"] = *parentID
@@ -46,7 +60,7 @@ func (r *FileRepository) FindByUserID(ctx context.Context, userID string, parent
 	return files, nil
 }
 
-func (r *FileRepository) FindByID(ctx context.Context, id string) (*models.File, error) {
+func (r *MongoDBFileRepository) FindByID(ctx context.Context, id string) (*models.File, error) {
 	var file models.File
 	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&file)
 	if err != nil {
@@ -59,7 +73,7 @@ func (r *FileRepository) FindByID(ctx context.Context, id string) (*models.File,
 }
 
 // FindByOriginalName finds a file by user ID and original name
-func (r *FileRepository) FindByOriginalName(ctx context.Context, userID, originalName string, parentID *string) (*models.File, error) {
+func (r *MongoDBFileRepository) FindByOriginalName(ctx context.Context, userID, originalName string, parentID *string) (*models.File, error) {
 	filter := bson.M{
 		"user_id":       userID,
 		"original_name": originalName,
@@ -82,7 +96,7 @@ func (r *FileRepository) FindByOriginalName(ctx context.Context, userID, origina
 	return &file, nil
 }
 
-func (r *FileRepository) Delete(ctx context.Context, id string) error {
+func (r *MongoDBFileRepository) Delete(ctx context.Context, id string) error {
 	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
@@ -93,7 +107,7 @@ func (r *FileRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *FileRepository) AddVersion(ctx context.Context, id string, version models.FileVersion, currentVersion int, path, mimeType string, size int64) error {
+func (r *MongoDBFileRepository) AddVersion(ctx context.Context, id string, version models.FileVersion, currentVersion int, path, mimeType string, size int64) error {
 	update := bson.M{
 		"$push": bson.M{"versions": version},
 		"$set": bson.M{
@@ -115,7 +129,7 @@ func (r *FileRepository) AddVersion(ctx context.Context, id string, version mode
 	return nil
 }
 
-func (r *FileRepository) UpdateCurrentVersion(ctx context.Context, id string, version int, path, mimeType string, size int64) error {
+func (r *MongoDBFileRepository) UpdateCurrentVersion(ctx context.Context, id string, version int, path, mimeType string, size int64) error {
 	update := bson.M{
 		"$set": bson.M{
 			"current_version": version,
@@ -138,7 +152,7 @@ func (r *FileRepository) UpdateCurrentVersion(ctx context.Context, id string, ve
 	return nil
 }
 
-func (r *FileRepository) DeleteVersion(ctx context.Context, id string, version int) error {
+func (r *MongoDBFileRepository) DeleteVersion(ctx context.Context, id string, version int) error {
 	update := bson.M{
 		"$pull": bson.M{"versions": bson.M{"version": version}},
 	}
