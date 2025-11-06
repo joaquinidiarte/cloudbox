@@ -10,17 +10,26 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type UserRepository struct {
+// UserRepository defines the interface for user data access
+type UserRepository interface {
+	FindByID(ctx context.Context, id string) (*models.User, error)
+	Update(ctx context.Context, id string, update *models.UserUpdateRequest) error
+	UpdateStorageUsed(ctx context.Context, userID string, delta int64) error
+}
+
+// MongoDBUserRepository is the MongoDB implementation of UserRepository
+type MongoDBUserRepository struct {
 	collection *mongo.Collection
 }
 
-func NewUserRepository(db *mongo.Database) *UserRepository {
-	return &UserRepository{
+// NewUserRepository creates a new MongoDB user repository
+func NewUserRepository(db *mongo.Database) UserRepository {
+	return &MongoDBUserRepository{
 		collection: db.Collection("users"),
 	}
 }
 
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
+func (r *MongoDBUserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
 	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
@@ -32,7 +41,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User,
 	return &user, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, id string, update *models.UserUpdateRequest) error {
+func (r *MongoDBUserRepository) Update(ctx context.Context, id string, update *models.UserUpdateRequest) error {
 	updateDoc := bson.M{
 		"$set": bson.M{
 			"updated_at": time.Now(),
@@ -59,7 +68,7 @@ func (r *UserRepository) Update(ctx context.Context, id string, update *models.U
 	return nil
 }
 
-func (r *UserRepository) UpdateStorageUsed(ctx context.Context, userID string, delta int64) error {
+func (r *MongoDBUserRepository) UpdateStorageUsed(ctx context.Context, userID string, delta int64) error {
 	_, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": userID},
