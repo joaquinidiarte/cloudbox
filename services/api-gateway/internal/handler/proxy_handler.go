@@ -30,6 +30,12 @@ func (h *ProxyHandler) ProxyToAuth(c *gin.Context) {
 	h.proxyRequest(c, baseURL)
 }
 
+func (h *ProxyHandler) ProxyToFile(c *gin.Context) {
+	// Use service name in Docker, localhost for local development
+	baseURL := getEnv("FILE_SERVICE_URL", "http://file-service:8083")
+	h.proxyRequest(c, baseURL)
+}
+
 func (h *ProxyHandler) proxyRequest(c *gin.Context, targetURL string) {
 	// Build target URL
 	url := targetURL + c.Request.URL.Path
