@@ -86,6 +86,7 @@ func (f *File) ToResponse() FileResponse {
 		ID:             f.ID,
 		UserID:         f.UserID,
 		Name:           f.Name,
+		OriginalName:   f.OriginalName,
 		Size:           f.Size,
 		MimeType:       f.MimeType,
 		ParentID:       f.ParentID,
