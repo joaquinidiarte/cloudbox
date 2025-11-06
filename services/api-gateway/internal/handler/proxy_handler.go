@@ -6,7 +6,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joaquinidiarte/cloudbox/shared/config"
@@ -42,6 +41,130 @@ func (h *ProxyHandler) ProxyToFile(c *gin.Context) {
 	// Use service name in Docker, localhost for local development
 	baseURL := h.config.FileServiceURL
 	h.proxyRequest(c, baseURL)
+}
+
+func (h *ProxyHandler) DeleteFile(c *gin.Context) {
+	// Special handler for file deletion that orchestrates storage update
+	fileServiceURL := h.config.FileServiceURL
+	userServiceURL := h.config.UserServiceURL
+
+	// Build target URL
+	url := fileServiceURL + c.Request.URL.Path
+	h.logger.Infof("Deleting file at %s", url)
+
+	// Create request to file service
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		h.logger.Errorf("Failed to create request: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse("Failed to proxy request"))
+		return
+	}
+
+	// Copy Authorization header
+	if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+
+	// Send request to file service
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		h.logger.Errorf("Failed to send request: %v", err)
+		c.JSON(http.StatusBadGateway, models.ErrorResponse("Service unavailable"))
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		h.logger.Errorf("Failed to read response: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse("Failed to read response"))
+		return
+	}
+
+	// If deletion was successful, update user storage (decrement)
+	if resp.StatusCode == http.StatusOK {
+		var response struct {
+			Success bool `json:"success"`
+			Data    struct {
+				DeletedSize int64 `json:"deleted_size"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(respBody, &response); err == nil && response.Success {
+			go h.updateUserStorage(userServiceURL, -response.Data.DeletedSize, c.GetHeader("Authorization"))
+		}
+	}
+
+	// Send response to client
+	for key, values := range resp.Header {
+		for _, value := range values {
+			c.Header(key, value)
+		}
+	}
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
+}
+
+func (h *ProxyHandler) DeleteFileVersion(c *gin.Context) {
+	// Special handler for file version deletion that orchestrates storage update
+	fileServiceURL := h.config.FileServiceURL
+	userServiceURL := h.config.UserServiceURL
+
+	// Build target URL
+	url := fileServiceURL + c.Request.URL.Path
+	h.logger.Infof("Deleting file version at %s", url)
+
+	// Create request to file service
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		h.logger.Errorf("Failed to create request: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse("Failed to proxy request"))
+		return
+	}
+
+	// Copy Authorization header
+	if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+
+	// Send request to file service
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		h.logger.Errorf("Failed to send request: %v", err)
+		c.JSON(http.StatusBadGateway, models.ErrorResponse("Service unavailable"))
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		h.logger.Errorf("Failed to read response: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse("Failed to read response"))
+		return
+	}
+
+	// If deletion was successful, update user storage (decrement)
+	if resp.StatusCode == http.StatusOK {
+		var response struct {
+			Success bool `json:"success"`
+			Data    struct {
+				DeletedSize int64 `json:"deleted_size"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(respBody, &response); err == nil && response.Success {
+			go h.updateUserStorage(userServiceURL, -response.Data.DeletedSize, c.GetHeader("Authorization"))
+		}
+	}
+
+	// Send response to client
+	for key, values := range resp.Header {
+		for _, value := range values {
+			c.Header(key, value)
+		}
+	}
+	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 }
 
 func (h *ProxyHandler) UploadFile(c *gin.Context) {
@@ -237,11 +360,4 @@ func (h *ProxyHandler) proxyRequest(c *gin.Context, targetURL string) {
 
 	// Send response
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

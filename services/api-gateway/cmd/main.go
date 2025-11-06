@@ -53,7 +53,7 @@ func main() {
 			files.POST("/upload", proxyHandler.UploadFile)
 			files.GET("/", proxyHandler.ProxyToFile)
 			files.GET("/:id/download", proxyHandler.ProxyToFile)
-			files.DELETE("/:id", proxyHandler.ProxyToFile)
+			files.DELETE("/:id", proxyHandler.DeleteFile)
 
 			// Folder routes
 			files.POST("/folders", proxyHandler.ProxyToFile)
@@ -63,7 +63,7 @@ func main() {
 			files.GET("/:id/versions", proxyHandler.ProxyToFile)
 			files.GET("/:id/versions/:version/download", proxyHandler.ProxyToFile)
 			files.POST("/:id/versions/:version/restore", proxyHandler.ProxyToFile)
-			files.DELETE("/:id/versions/:version", proxyHandler.ProxyToFile)
+			files.DELETE("/:id/versions/:version", proxyHandler.DeleteFileVersion)
 		}
 	}
 
