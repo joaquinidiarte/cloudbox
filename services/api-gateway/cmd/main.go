@@ -38,6 +38,12 @@ func main() {
 			auth.POST("/verify", proxyHandler.ProxyToAuth)
 		}
 
+		// User routes (proxy to user-service)
+		users := api.Group("/users")
+		{
+			users.GET("/me", proxyHandler.ProxyToUser)
+			users.PUT("/me", proxyHandler.ProxyToUser)
+			users.GET("/:id", proxyHandler.ProxyToUser)
 		// File routes
 		files := api.Group("/files")
 		{
