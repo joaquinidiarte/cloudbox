@@ -257,3 +257,45 @@ func (s *FileService) DownloadFileVersion(ctx context.Context, userID, fileID st
 
 	return file, versionPath, nil
 }
+
+func (s *FileService) RestoreFileVersion(ctx context.Context, userID, fileID string, version int) (*models.FileResponse, error) {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if file.UserID != userID {
+		return nil, errors.New("unauthorized access to file")
+	}
+
+	if file.IsFolder {
+		return nil, errors.New("folders do not have versions")
+	}
+
+	// Find the requested version
+	var targetVersion *models.FileVersion
+	for i := range file.Versions {
+		if file.Versions[i].Version == version {
+			targetVersion = &file.Versions[i]
+			break
+		}
+	}
+
+	if targetVersion == nil {
+		return nil, errors.New("version not found")
+	}
+
+	// Update current version pointer
+	if err := s.fileRepo.UpdateCurrentVersion(ctx, fileID, version, targetVersion.Path, targetVersion.MimeType, targetVersion.Size); err != nil {
+		return nil, err
+	}
+
+	// Get updated file
+	updatedFile, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := updatedFile.ToResponse()
+	return &response, nil
+}

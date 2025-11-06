@@ -201,3 +201,30 @@ func (h *FileHandler) DownloadFileVersion(c *gin.Context) {
 
 	c.FileAttachment(versionPath, file.OriginalName)
 }
+
+func (h *FileHandler) RestoreFileVersion(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	fileID := c.Param("id")
+	versionStr := c.Param("version")
+
+	version, err := strconv.Atoi(versionStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse("Invalid version number"))
+		return
+	}
+
+	response, err := h.fileService.RestoreFileVersion(c.Request.Context(), userID, fileID, version)
+	if err != nil {
+		h.logger.Errorf("Failed to restore file version: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	h.logger.Infof("File version restored successfully: %s v%d", fileID, version)
+	c.JSON(http.StatusOK, models.SuccessResponse(response, "File version restored successfully"))
+}

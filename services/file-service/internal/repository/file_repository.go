@@ -114,3 +114,26 @@ func (r *FileRepository) AddVersion(ctx context.Context, id string, version mode
 	}
 	return nil
 }
+
+func (r *FileRepository) UpdateCurrentVersion(ctx context.Context, id string, version int, path, mimeType string, size int64) error {
+	update := bson.M{
+		"$set": bson.M{
+			"current_version": version,
+			"path":            path,
+			"mime_type":       mimeType,
+			"size":            size,
+		},
+		"$currentDate": bson.M{
+			"updated_at": true,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return errors.New("file not found")
+	}
+	return nil
+}

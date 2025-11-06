@@ -53,6 +53,7 @@ func main() {
 			// Version routes
 			files.GET("/:id/versions", proxyHandler.ProxyToFile)
 			files.GET("/:id/versions/:version/download", proxyHandler.ProxyToFile)
+			files.POST("/:id/versions/:version/restore", proxyHandler.ProxyToFile)
 		}
 	}
 
