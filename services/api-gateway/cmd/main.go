@@ -49,6 +49,9 @@ func main() {
 			// Folder routes
 			files.POST("/folders", proxyHandler.ProxyToFile)
 			files.GET("/folders/:id", proxyHandler.ProxyToFile)
+
+			// Version routes
+			files.GET("/:id/versions", proxyHandler.ProxyToFile)
 		}
 	}
 

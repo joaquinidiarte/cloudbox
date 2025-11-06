@@ -12,7 +12,6 @@ import (
 
 	"github.com/joaquinidiarte/cloudbox/services/file-service/internal/repository"
 	"github.com/joaquinidiarte/cloudbox/shared/models"
-	"github.com/joaquinidiarte/cloudbox/shared/utils"
 )
 
 type FileService struct {
@@ -42,11 +41,17 @@ func (s *FileService) UploadFile(ctx context.Context, userID string, fileHeader 
 	}
 	defer src.Close()
 
-	// Calculate hash
-	hash, err := utils.HashFile(src)
+	// Check if file with same name exists (for versioning)
+	existingFile, err := s.fileRepo.FindByOriginalName(ctx, userID, fileHeader.Filename, parentID)
 	if err != nil {
 		return nil, err
 	}
+
+	if existingFile != nil {
+		// File with same name exists - create new version
+		return s.addNewVersion(ctx, existingFile, fileHeader, src)
+	}
+
 	// Reset file pointer
 	src.Seek(0, 0)
 
@@ -80,7 +85,6 @@ func (s *FileService) UploadFile(ctx context.Context, userID string, fileHeader 
 		filePath,
 		fileHeader.Size,
 		fileHeader.Header.Get("Content-Type"),
-		hash,
 		parentID,
 	)
 
@@ -152,4 +156,74 @@ func (s *FileService) CreateFolder(ctx context.Context, userID string, req *mode
 
 	response := folder.ToResponse()
 	return &response, nil
+}
+
+/* Version operations */
+func (s *FileService) addNewVersion(ctx context.Context, existingFile *models.File, fileHeader *multipart.FileHeader, src multipart.File) (*models.FileResponse, error) {
+	// Reset file pointer
+	src.Seek(0, 0)
+
+	// Create user directory
+	userDir := filepath.Join(s.storagePath, existingFile.UserID)
+	if err := os.MkdirAll(userDir, 0755); err != nil {
+		return nil, err
+	}
+
+	// Generate unique filename for new version
+	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename)
+	filePath := filepath.Join(userDir, filename)
+
+	// Save file to disk
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		os.Remove(filePath)
+		return nil, err
+	}
+
+	// Create new version
+	newVersionNumber := existingFile.CurrentVersion + 1
+	newVersion := models.FileVersion{
+		Version:    newVersionNumber,
+		Size:       fileHeader.Size,
+		Path:       filePath,
+		MimeType:   fileHeader.Header.Get("Content-Type"),
+		UploadedAt: time.Now(),
+	}
+
+	// Add version to database
+	if err := s.fileRepo.AddVersion(ctx, existingFile.ID, newVersion, newVersionNumber, filePath, newVersion.MimeType, fileHeader.Size); err != nil {
+		os.Remove(filePath)
+		return nil, err
+	}
+
+	// Get updated file
+	updatedFile, err := s.fileRepo.FindByID(ctx, existingFile.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := updatedFile.ToResponse()
+	return &response, nil
+}
+
+func (s *FileService) GetFileVersions(ctx context.Context, userID, fileID string) ([]models.FileVersionResponse, error) {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if file.UserID != userID {
+		return nil, errors.New("unauthorized access to file")
+	}
+
+	if file.IsFolder {
+		return nil, errors.New("folders do not have versions")
+	}
+
+	return file.GetVersionResponses(), nil
 }

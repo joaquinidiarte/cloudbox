@@ -154,3 +154,23 @@ func (h *FileHandler) GetFolderContents(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.SuccessResponse(files, "Folder contents retrieved successfully"))
 }
+
+/* Version operations */
+func (h *FileHandler) GetFileVersions(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	fileID := c.Param("id")
+
+	versions, err := h.fileService.GetFileVersions(c.Request.Context(), userID, fileID)
+	if err != nil {
+		h.logger.Errorf("Failed to get file versions: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.SuccessResponse(versions, "File versions retrieved successfully"))
+}

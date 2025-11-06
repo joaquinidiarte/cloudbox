@@ -69,6 +69,9 @@ func main() {
 		// Folder operations
 		v1.POST("/folders", fileHandler.CreateFolder)
 		v1.GET("/folders/:id", fileHandler.GetFolderContents)
+
+		// Version operations
+		v1.GET("/:id/versions", fileHandler.GetFileVersions)
 	}
 
 	port := cfg.ServicePort

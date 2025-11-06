@@ -58,12 +58,58 @@ func (r *FileRepository) FindByID(ctx context.Context, id string) (*models.File,
 	return &file, nil
 }
 
+// FindByOriginalName finds a file by user ID and original name
+func (r *FileRepository) FindByOriginalName(ctx context.Context, userID, originalName string, parentID *string) (*models.File, error) {
+	filter := bson.M{
+		"user_id":       userID,
+		"original_name": originalName,
+		"is_folder":     false,
+	}
+	if parentID != nil {
+		filter["parent_id"] = *parentID
+	} else {
+		filter["parent_id"] = bson.M{"$exists": false}
+	}
+
+	var file models.File
+	err := r.collection.FindOne(ctx, filter).Decode(&file)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &file, nil
+}
+
 func (r *FileRepository) Delete(ctx context.Context, id string) error {
 	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
 	}
 	if result.DeletedCount == 0 {
+		return errors.New("file not found")
+	}
+	return nil
+}
+
+func (r *FileRepository) AddVersion(ctx context.Context, id string, version models.FileVersion, currentVersion int, path, mimeType string, size int64) error {
+	update := bson.M{
+		"$push": bson.M{"versions": version},
+		"$set": bson.M{
+			"current_version": currentVersion,
+			"path":            path,
+			"mime_type":       mimeType,
+			"size":            size,
+			"updated_at":      version.UploadedAt,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
 		return errors.New("file not found")
 	}
 	return nil
