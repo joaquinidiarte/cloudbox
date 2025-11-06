@@ -74,7 +74,7 @@ func main() {
 		v1.GET("/:id/versions", fileHandler.GetFileVersions)
 		v1.GET("/:id/versions/:version/download", fileHandler.DownloadFileVersion)
 		v1.POST("/:id/versions/:version/restore", fileHandler.RestoreFileVersion)
-
+		v1.DELETE("/:id/versions/:version", fileHandler.DeleteFileVersion)
 	}
 
 	port := cfg.ServicePort

@@ -299,3 +299,49 @@ func (s *FileService) RestoreFileVersion(ctx context.Context, userID, fileID str
 	response := updatedFile.ToResponse()
 	return &response, nil
 }
+
+func (s *FileService) DeleteFileVersion(ctx context.Context, userID, fileID string, version int) error {
+	file, err := s.fileRepo.FindByID(ctx, fileID)
+	if err != nil {
+		return err
+	}
+
+	if file.UserID != userID {
+		return errors.New("unauthorized access to file")
+	}
+
+	if file.IsFolder {
+		return errors.New("folders do not have versions")
+	}
+
+	if version == file.CurrentVersion {
+		return errors.New("cannot delete current version")
+	}
+
+	if len(file.Versions) <= 1 {
+		return errors.New("cannot delete the only version")
+	}
+
+	// Find the version to delete
+	var versionPath string
+	for _, v := range file.Versions {
+		if v.Version == version {
+			versionPath = v.Path
+			break
+		}
+	}
+
+	if versionPath == "" {
+		return errors.New("version not found")
+	}
+
+	// Delete from database
+	if err := s.fileRepo.DeleteVersion(ctx, fileID, version); err != nil {
+		return err
+	}
+
+	// Delete file from disk
+	os.Remove(versionPath)
+
+	return nil
+}

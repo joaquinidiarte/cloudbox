@@ -137,3 +137,18 @@ func (r *FileRepository) UpdateCurrentVersion(ctx context.Context, id string, ve
 	}
 	return nil
 }
+
+func (r *FileRepository) DeleteVersion(ctx context.Context, id string, version int) error {
+	update := bson.M{
+		"$pull": bson.M{"versions": bson.M{"version": version}},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return errors.New("file not found")
+	}
+	return nil
+}
