@@ -47,54 +47,60 @@ func (s *FileService) UploadFile(ctx context.Context, userID string, fileHeader 
 		return nil, err
 	}
 
+	var response *models.FileResponse
 	if existingFile != nil {
 		// File with same name exists - create new version
-		return s.addNewVersion(ctx, existingFile, fileHeader, src)
+		response, err = s.addNewVersion(ctx, existingFile, fileHeader, src)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Reset file pointer
+		src.Seek(0, 0)
+
+		// Create user directory
+		userDir := filepath.Join(s.storagePath, userID)
+		if err := os.MkdirAll(userDir, 0755); err != nil {
+			return nil, err
+		}
+
+		// Generate unique filename
+		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename)
+		filePath := filepath.Join(userDir, filename)
+
+		// Save file to disk
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return nil, err
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			os.Remove(filePath)
+			return nil, err
+		}
+
+		// Create file record
+		file := models.NewFile(
+			userID,
+			filename,
+			fileHeader.Filename,
+			filePath,
+			fileHeader.Size,
+			fileHeader.Header.Get("Content-Type"),
+			parentID,
+		)
+
+		if err := s.fileRepo.Create(ctx, file); err != nil {
+			os.Remove(filePath)
+			return nil, err
+		}
+
+		resp := file.ToResponse()
+		response = &resp
 	}
 
-	// Reset file pointer
-	src.Seek(0, 0)
-
-	// Create user directory
-	userDir := filepath.Join(s.storagePath, userID)
-	if err := os.MkdirAll(userDir, 0755); err != nil {
-		return nil, err
-	}
-
-	// Generate unique filename
-	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename)
-	filePath := filepath.Join(userDir, filename)
-
-	// Save file to disk
-	dst, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, src); err != nil {
-		os.Remove(filePath)
-		return nil, err
-	}
-
-	// Create file record
-	file := models.NewFile(
-		userID,
-		filename,
-		fileHeader.Filename,
-		filePath,
-		fileHeader.Size,
-		fileHeader.Header.Get("Content-Type"),
-		parentID,
-	)
-
-	if err := s.fileRepo.Create(ctx, file); err != nil {
-		os.Remove(filePath)
-		return nil, err
-	}
-
-	response := file.ToResponse()
-	return &response, nil
+	return response, nil
 }
 
 func (c *FileService) ListFiles(ctx context.Context, userID string, parentID *string) ([]*models.FileResponse, error) {

@@ -5,13 +5,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/handler"
 	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/repository"
 	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/service"
 	"github.com/joaquinidiarte/cloudbox/shared/config"
 	"github.com/joaquinidiarte/cloudbox/shared/middleware"
 	"github.com/joaquinidiarte/cloudbox/shared/utils"
-	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -62,6 +62,7 @@ func main() {
 	{
 		v1.GET("/me", userHandler.GetCurrentUser)
 		v1.PUT("/me", userHandler.UpdateCurrentUser)
+		v1.POST("/storage", userHandler.UpdateStorageUsed)
 		v1.GET("/:id", userHandler.GetUserByID)
 	}
 

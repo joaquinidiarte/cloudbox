@@ -3,11 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joaquinidiarte/cloudbox/services/user-service/internal/service"
 	"github.com/joaquinidiarte/cloudbox/shared/middleware"
 	"github.com/joaquinidiarte/cloudbox/shared/models"
 	"github.com/joaquinidiarte/cloudbox/shared/utils"
-	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -74,4 +74,28 @@ func (h *UserHandler) UpdateCurrentUser(c *gin.Context) {
 
 	h.logger.Infof("User updated successfully: %s", userID)
 	c.JSON(http.StatusOK, models.SuccessResponse(user, "User updated successfully"))
+}
+
+func (h *UserHandler) UpdateStorageUsed(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	var req struct {
+		Increment int64 `json:"increment" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse("Invalid request: "+err.Error()))
+		return
+	}
+
+	if err := h.userService.UpdateStorageUsed(c.Request.Context(), userID, req.Increment); err != nil {
+		h.logger.Errorf("Failed to update storage: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse("Failed to update storage"))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.SuccessResponse(nil, "Storage updated successfully"))
 }
