@@ -92,7 +92,7 @@ services:
       - JWT_SECRET=your-secret-key
       - JWT_EXPIRATION=24h
       - STORAGE_PATH=/app/storage
-      - MAX_FILE_SIZE=104857600
+      - MAX_FILE_SIZE=524288000
       - ENVIRONMENT=production
     volumes:
       - file_storage:/app/storage
